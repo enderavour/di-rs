@@ -2,7 +2,7 @@ use std::ffi::CString;
 use crate::statfs;
 use std::{mem::zeroed, process::exit, io};
 use crate::disk;
-use std::fs::File;
+use std::fs::{self, File};
 use std::os::fd::AsRawFd;
 
 // Function to get drive name and mountpoint
@@ -62,3 +62,5 @@ pub fn strip_buf_zeros(line: &String) -> String
 	}
 	stripped_string
 }
+
+

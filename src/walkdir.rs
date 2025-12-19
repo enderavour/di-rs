@@ -5,6 +5,8 @@ use std::ffi::CString;
 use crate::utils;
 use std::sync::Mutex;
 use num_format::{format::Locale, ToFormattedString};
+use crate::args::EntryType;
+use std::path::Path;
 
 pub static TOTAL_FILE_SIZE: Mutex<u64> = Mutex::new(0);
 pub static TOTAL_DIR_SIZE: Mutex<u64> = Mutex::new(0);
@@ -58,28 +60,71 @@ fn dir_util_walk_dir(path: &str) -> io::Result<(u32, u32)>
 	Ok((dir_count, file_count))
 }
 
-pub fn dir_iter(path: &CString)
+pub fn dir_iter(path: &CString, entry_type: EntryType)
 {
-	if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(path)
+	if let EntryType::Dir = entry_type
 	{
-		// Stripping the returned buffers
-		let part = utils::strip_buf_zeros(part_unstr);
-		let  mnt = utils::strip_buf_zeros(mnt_unstr);
+		if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(path)
+		{
+			// Stripping the returned buffers
+			let part = utils::strip_buf_zeros(part_unstr);
+			let  mnt = utils::strip_buf_zeros(mnt_unstr);
 	
-		// Getting drive name
-		let mut dev = part.clone();
-		let _ = dev.split_off(part.len() - 2);
+			// Getting drive name
+			let mut dev = part.clone();
+			let _ = dev.split_off(part.len() - 2);
 		
-		println!(" Volume in drive {} is {}", part, mnt);
-		println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
-		println!(" Directory of {}\n", path.clone().into_string().unwrap());
+			println!(" Volume in drive {} is {}", part, mnt);
+			println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+			println!(" Directory of {}\n", path.clone().into_string().unwrap());
 
-		let (dir_count, file_count) = dir_util_walk_dir(path.clone().into_string().unwrap().as_str()).unwrap();
+			let (dir_count, file_count) = dir_util_walk_dir(path.clone().into_string().unwrap().as_str()).unwrap();
 
-		println!("      {:>10} {:<8} {:>15} bytes",
+			println!("      {:>10} {:<8} {:>15} bytes",
 				 file_count, "File(s)",  &(*TOTAL_FILE_SIZE.lock().unwrap().to_formatted_string(&Locale::fr)));
-		// Calculating free space on the disk based on mountpoint
-		println!("      {:>10} {:<8} {:>15} bytes free",
+			// Calculating free space on the disk based on mountpoint
+			println!("      {:>10} {:<8} {:>15} bytes free",
 				 dir_count, "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
-	}				  
+		}
+	}
+
+	if let EntryType::File = entry_type
+	{
+		let fp = Path::new(path.to_str().unwrap());
+		let parent_path = fp.parent().unwrap();
+		let file_path = fp.file_name().unwrap();
+		if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(&CString::new(parent_path.to_str().unwrap()).unwrap())
+		{
+			// Stripping the returned buffers
+			let part = utils::strip_buf_zeros(part_unstr);
+			let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+			// Getting drive name
+			let mut dev = part.clone();
+			let _ = dev.split_off(part.len() - 2);
+		
+			println!(" Volume in drive {} is {}", part, mnt);
+			println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+			println!(" Directory of {}\n", path.clone().into_string().unwrap());
+
+			let entry_metadata = fs::metadata(path.to_str().unwrap()).unwrap();
+
+			let dt_local: DateTime<Local> = entry_metadata.modified().unwrap().into();
+			
+			println!(
+				"{} {}              {:>12}  {}",
+				dt_local.format("%d.%m.%Y"),
+				dt_local.format("%H:%M"),
+				entry_metadata.len(),
+				file_path.to_str().unwrap()
+			);
+
+			println!("      {:>10} {:<8} {:>15} bytes",
+				 "1", "File(s)",  &(*TOTAL_FILE_SIZE.lock().unwrap().to_formatted_string(&Locale::fr)));
+			// Calculating free space on the disk based on mountpoint
+			println!("      {:>10} {:<8} {:>15} bytes free",
+				 "0", "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
+		}
+	}		
 }
+
