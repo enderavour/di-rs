@@ -1,12 +1,9 @@
 use std::fs;
 use std::io;
 use chrono::{DateTime, Local};
-use crate::statfs;
-use std::mem::zeroed;
-use std::process::exit;
 use std::ffi::CString;
 use crate::utils;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::Mutex;
 use num_format::{format::Locale, ToFormattedString};
 
 pub static TOTAL_FILE_SIZE: Mutex<u64> = Mutex::new(0);
@@ -25,7 +22,7 @@ fn dir_util_walk_dir(path: &str) -> io::Result<(u32, u32)>
 	let parent_modified: DateTime<Local> = parent_dir_metadata.modified()?.into();
  
 	println!("{} {}    <DIR>                   .", cur_modified.format("%d.%m.%Y"), cur_modified.format("%H:%M"));
-	println!("{} {}    <DIR>                   ..", cur_modified.format("%d.%m.%Y"), cur_modified.format("%H:%M"));
+	println!("{} {}    <DIR>                   ..", parent_modified.format("%d.%m.%Y"), parent_modified.format("%H:%M"));
 	
 	for obj  in fs::read_dir(path)?
 	{
@@ -63,10 +60,18 @@ fn dir_util_walk_dir(path: &str) -> io::Result<(u32, u32)>
 
 pub fn dir_iter(path: &CString)
 {
-	if let Ok((dev, mnt)) = utils::dname_and_mp(path)
+	if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(path)
 	{
-		println!(" Volume in drive {} is {}", dev, mnt);
-		println!(" Volume Serial Number is {}\n", utils::d_serial_num("/dev/ada0"));
+		// Stripping the returned buffers
+		let part = utils::strip_buf_zeros(part_unstr);
+		let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+		// Getting drive name
+		let mut dev = part.clone();
+		let _ = dev.split_off(part.len() - 2);
+		
+		println!(" Volume in drive {} is {}", part, mnt);
+		println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
 		println!(" Directory of {}\n", path.clone().into_string().unwrap());
 
 		let (dir_count, file_count) = dir_util_walk_dir(path.clone().into_string().unwrap().as_str()).unwrap();
@@ -75,6 +80,6 @@ pub fn dir_iter(path: &CString)
 				 file_count, "File(s)",  &(*TOTAL_FILE_SIZE.lock().unwrap().to_formatted_string(&Locale::fr)));
 		// Calculating free space on the disk based on mountpoint
 		println!("      {:>10} {:<8} {:>15} bytes free",
-				 dir_count, "Dir(s)", &(utils::d_free_space(&CString::new("/").unwrap()).to_formatted_string(&Locale::fr)));
+				 dir_count, "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
 	}				  
 }

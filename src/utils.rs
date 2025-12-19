@@ -3,7 +3,7 @@ use crate::statfs;
 use std::{mem::zeroed, process::exit, io};
 use crate::disk;
 use std::fs::File;
-use std::os::fd::{RawFd, AsRawFd};
+use std::os::fd::AsRawFd;
 
 // Function to get drive name and mountpoint
 pub fn dname_and_mp(path: &CString) -> io::Result<(String, String)>
@@ -49,4 +49,16 @@ pub fn d_free_space(disk: &CString) -> u64
 	}
 
 	st.f_bsize * (st.f_bavail as u64)
+}
+
+// Remove zeros in buffers, filled by system calls ioctl/statfs
+pub fn strip_buf_zeros(line: &String) -> String
+{
+	let mut stripped_string = String::new();
+	for ch in line.chars()
+	{
+		if ch == '\0' { break; }
+		stripped_string.push(ch);
+	}
+	stripped_string
 }
