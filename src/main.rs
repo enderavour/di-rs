@@ -27,6 +27,7 @@ fn main() -> io::Result<()>
 		
 	}
 	else
+
 	{
 		// Otherwise, assigning provided path to directory
 		path = args.unwrap().path.unwrap();

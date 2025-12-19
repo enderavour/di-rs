@@ -105,6 +105,7 @@ pub fn dir_iter(path: &CString, entry_type: EntryType)
 		
 			println!(" Volume in drive {} is {}", part, mnt);
 			println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+
 			println!(" Directory of {}\n", path.clone().into_string().unwrap());
 
 			let entry_metadata = fs::metadata(path.to_str().unwrap()).unwrap();
@@ -120,11 +121,35 @@ pub fn dir_iter(path: &CString, entry_type: EntryType)
 			);
 
 			println!("      {:>10} {:<8} {:>15} bytes",
-				 "1", "File(s)",  &(*TOTAL_FILE_SIZE.lock().unwrap().to_formatted_string(&Locale::fr)));
+				 "1", "File(s)",  entry_metadata.len());
 			// Calculating free space on the disk based on mountpoint
 			println!("      {:>10} {:<8} {:>15} bytes free",
 				 "0", "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
 		}
-	}		
+	}
+
+	if let EntryType::Unknown = entry_type
+	{
+		let fp = Path::new(path.to_str().unwrap());
+		let parent_path = fp.parent().unwrap();
+
+		if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(&CString::new(parent_path.to_str().unwrap()).unwrap())
+		{
+			// Stripping the returned buffers
+			let part = utils::strip_buf_zeros(part_unstr);
+			let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+			// Getting drive name
+			let mut dev = part.clone();
+			let _ = dev.split_off(part.len() - 2);
+		
+			println!(" Volume in drive {} is {}", part, mnt);
+			println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+
+			println!(" Directory of {}\n", parent_path.to_str().unwrap());
+
+			println!("File Not Found");
+		}
+	}
 }
 

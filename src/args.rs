@@ -24,7 +24,7 @@ pub fn parse_args(arg: &Args) -> (Option<Args>, EntryType)
 	
 	let path_info = fs::metadata(arg.path.clone().unwrap());
 
-	if !path_info.is_ok() { return (None, EntryType::Unknown) }
+	if !path_info.is_ok() { return (Some(arg.clone()), EntryType::Unknown) }
 
 	let path = path_info.unwrap();
 	

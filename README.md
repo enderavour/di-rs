@@ -15,8 +15,11 @@ for debug mode.
 ### Dependencies:
 - [chrono](https://crates.io/crates/chrono) - Timezone-aware date and time handling
 - [num-format](https://crates.io/crates/num_format/0.1.2) - A Rust crate for producing string-representations of numbers, formatted according to international standards
+- [clap](https://crates.io/crates/clap) - A simple to use, efficient, and full-featured Command Line Argument Parser
 
-
+TODO:
+- Add "Not Found" description when nonexistent directory is passed (currently breaks with statfs 2 code)
+ 
 The utility automatically displays content in current working directory. Support of command line arguments will be added soon.
 Utility was tested on FreeBSD, in future will be tested and ported into OpenBSD and NetBSD.
 Contributors are welcomed.
