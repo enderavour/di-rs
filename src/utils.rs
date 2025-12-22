@@ -6,7 +6,7 @@ use std::fs::{self, File};
 use std::os::fd::AsRawFd;
 
 // Function to get drive name and mountpoint
-pub fn dname_and_mp(path: &CString) -> io::Result<(String, String)>
+pub fn dname_and_mp(path: &CString) -> Result<(String, String), i32>
 {
     let mut st: statfs::statfs = unsafe { zeroed() };
 	// For receiving drive name and mount point
@@ -14,8 +14,7 @@ pub fn dname_and_mp(path: &CString) -> io::Result<(String, String)>
 
 	if res != 0
 	{
-		eprintln!("statfs: {}", io::Error::last_os_error().raw_os_error().unwrap());
-		exit(res);
+		return Err(io::Error::last_os_error().raw_os_error().unwrap());
 	}
 	
 	let dev = str::from_utf8(&st.f_mntfromname).unwrap();
