@@ -23,7 +23,7 @@ for debug mode.
 - Temporarily, the utility will accept - as flag for arguments, E.g.
 ```
 dir -?
-```. Otherwise, all of the arguments will remain accordingly to official version. For now, only ? flag is supported.
+``` . Otherwise, all of the arguments will remain accordingly to official version. For now, only ? flag is supported.
 - The utility is yet built and tested only at UFS. Porting to ZFS will be made later 
 - The utility automatically displays content in current working directory. Support of command line arguments will be added soon.
 - Utility was tested on FreeBSD, in future will be tested and ported into OpenBSD and NetBSD.
