@@ -6,7 +6,7 @@ use crate::utils;
 use std::sync::Mutex;
 use num_format::{format::Locale, ToFormattedString};
 use crate::args::EntryType;
-use std::path::Path;
+use std::path::Path; 
 
 pub static TOTAL_FILE_SIZE: Mutex<u64> = Mutex::new(0);
 pub static TOTAL_DIR_SIZE: Mutex<u64> = Mutex::new(0);

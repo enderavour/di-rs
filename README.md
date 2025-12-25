@@ -15,10 +15,15 @@ for debug mode.
 ### Dependencies:
 - [chrono](https://crates.io/crates/chrono) - Timezone-aware date and time handling
 - [num-format](https://crates.io/crates/num_format/0.1.2) - A Rust crate for producing string-representations of numbers, formatted according to international standards
-- [clap](https://crates.io/crates/clap) - A simple to use, efficient, and full-featured Command Line Argument Parser
+
+
 
 
 ### Notes:
+- Temporarily, the utility will accept - as flag for arguments, E.g.
+```
+dir -?
+```. Otherwise, all of the arguments will remain accordingly to official version. For now, only ? flag is supported.
 - The utility is yet built and tested only at UFS. Porting to ZFS will be made later 
 - The utility automatically displays content in current working directory. Support of command line arguments will be added soon.
 - Utility was tested on FreeBSD, in future will be tested and ported into OpenBSD and NetBSD.

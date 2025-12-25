@@ -1,4 +1,3 @@
-
 const MFSNAMELEN: usize = 16;
 const MNAMELEN: usize = 1024;
 
@@ -16,7 +15,7 @@ pub struct statfs
 	f_type: u32,
 	f_flags: u64,
 	pub f_bsize: u64,
-	f_iosize: u64,
+	pub	f_iosize: u64,
 	f_blocks: u64,
 	f_bfree: u64,
 	pub f_bavail: i64,
