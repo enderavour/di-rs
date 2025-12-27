@@ -44,6 +44,7 @@ fn main() -> io::Result<()>
 		match arg
 		{
 			ArgumentActions::DisplayHelp => handlers::display_help(),
+			ArgumentActions::DisplayBare => handlers::display_bare(&env::current_dir()?.as_path().to_str().unwrap().to_string()).unwrap(),
 			ArgumentActions::Unknown => {}
 		}
 	}

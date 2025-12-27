@@ -1,3 +1,6 @@
+use std::fs;
+use std::io;
+
 pub fn display_help()
 {
 	println!(r#"Displays a list of files and subdirectories in a directory.
@@ -42,4 +45,17 @@ DIR [drive:][path][filename] [/A[[:]attributes]] [/B] [/C] [/D] [/L] [/N]
 Switches may be preset in the DIRCMD environment variable.  Override
 preset switches by prefixing any switch with - (hyphen)--for example, /-W."#);
 	
+}
+
+pub fn display_bare(path: &String) -> io::Result<()> 
+{
+	for obj in fs::read_dir(path)?
+	{
+		let entry = obj?;
+		let entry_full_path = entry.path().into_os_string().into_string().unwrap();
+		// Getting last name of directory to display
+		let last_path_name = entry_full_path.split("/").last().unwrap().to_owned();
+		println!("{}", last_path_name);
+	}
+	Ok(())
 }

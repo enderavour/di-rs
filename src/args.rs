@@ -39,6 +39,7 @@ pub enum EntryType
 pub enum ArgumentActions
 {
 	DisplayHelp,
+	DisplayBare,
 	Unknown,
 }
 
@@ -72,6 +73,7 @@ fn parse_named(arg: &String) -> ArgumentActions
 	let action = match parsed
 	{
 		"?" => ArgumentActions::DisplayHelp,
+		"b" => ArgumentActions::DisplayBare,
 		&_ => ArgumentActions::Unknown
 	};
 
