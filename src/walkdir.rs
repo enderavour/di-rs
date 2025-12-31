@@ -1,0 +1,181 @@
+use std::fs;
+use std::io;
+use chrono::{DateTime, Local};
+use std::ffi::CString;
+use crate::utils;
+use std::sync::Mutex;
+use num_format::{format::Locale, ToFormattedString};
+use crate::args::EntryType;
+use std::path::Path;
+use crate::{AtomicBool, Ordering};
+
+pub static TOTAL_FILE_SIZE: Mutex<u64> = Mutex::new(0);
+pub static TOTAL_DIR_SIZE: Mutex<u64> = Mutex::new(0);
+
+fn dir_util_walk_dir(path: &str, lowercase_format: &AtomicBool) -> io::Result<(u32, u32)>
+{
+	
+	let mut file_count = 0;
+	let mut dir_count = 0;
+
+	// Manually adding . and .. entries
+	let cur_dir_metadata = fs::metadata(".")?;
+	let parent_dir_metadata = fs::metadata("..")?;
+
+	let cur_modified: DateTime<Local> = cur_dir_metadata.modified()?.into();
+	let parent_modified: DateTime<Local> = parent_dir_metadata.modified()?.into();
+ 
+	println!("{} {}    <DIR>                   .", cur_modified.format("%d.%m.%Y"), cur_modified.format("%H:%M"));
+	println!("{} {}    <DIR>                   ..", parent_modified.format("%d.%m.%Y"), parent_modified.format("%H:%M"));
+	
+	for obj  in fs::read_dir(path)?
+	{
+		let entry = obj?;
+		let entry_metadata = entry.metadata()?;
+
+		let dt_local: DateTime<Local> = entry_metadata.modified()?.into();
+
+		let entry_path = entry.path().into_os_string().into_string().unwrap();
+		let mut last_node_of_path = entry_path.split("/").last().unwrap().to_owned();
+		
+
+		if lowercase_format.load(Ordering::Relaxed)
+		{
+			let lnode_path = last_node_of_path.to_owned();
+			let lowercase_lnode_path = lnode_path.to_lowercase();
+			last_node_of_path = lowercase_lnode_path;
+		}
+		
+		if entry_metadata.is_dir()
+		{			
+			println!(
+				"{} {}    <DIR>                   {}",
+				dt_local.format("%d.%m.%Y"),
+				dt_local.format("%H:%M"),
+				last_node_of_path
+			);
+			*TOTAL_DIR_SIZE.lock().unwrap() += entry_metadata.len();
+			dir_count += 1;
+		}
+		else
+		{
+			println!(
+				"{} {}              {:>12}  {}",
+				dt_local.format("%d.%m.%Y"),
+				dt_local.format("%H:%M"),
+				entry_metadata.len(),
+				last_node_of_path
+			);
+			*TOTAL_FILE_SIZE.lock().unwrap() += entry_metadata.len();
+			file_count += 1;
+		}
+	}
+	Ok((dir_count, file_count))
+}
+
+pub fn dir_iter(path: &CString, entry_type: EntryType, lowercase_format: &AtomicBool)
+{
+	if let EntryType::Dir = entry_type
+	{
+		if let Ok((ref part_unstr, ref mnt_unstr)) =  utils::dname_and_mp(path)
+		{
+				// Stripping the returned buffers
+				let part = utils::strip_buf_zeros(part_unstr);
+				let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+				// Getting drive name
+				let mut dev = part.clone();
+				let _ = dev.split_off(part.len() - 2);
+		
+				println!(" Volume in drive {} is {}", part, mnt);
+				println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+				println!(" Directory of {}\n", path.clone().into_string().unwrap());
+
+				let (dir_count, file_count) = dir_util_walk_dir(path.clone().into_string().unwrap().as_str(), lowercase_format).unwrap();
+
+				println!("      {:>10} {:<8} {:>15} bytes",
+					 file_count, "File(s)",  &(*TOTAL_FILE_SIZE.lock().unwrap().to_formatted_string(&Locale::fr)));
+				// Calculating free space on the disk based on mountpoint
+				println!("      {:>10} {:<8} {:>15} bytes free",
+					 dir_count, "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
+		}
+	}
+
+	if let EntryType::File = entry_type
+	{
+		let fp = Path::new(path.to_str().unwrap());
+		let parent_path = fp.parent().unwrap();
+		let file_path = fp.file_name().unwrap();
+
+		if let Ok((ref part_unstr, ref mnt_unstr)) = utils::dname_and_mp(&CString::new(parent_path.to_str().unwrap()).unwrap())
+		{
+			// Stripping the returned buffers
+			let part = utils::strip_buf_zeros(part_unstr);
+			let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+			// Getting drive name
+			let mut dev = part.clone();
+			let _ = dev.split_off(part.len() - 2);
+		
+			println!(" Volume in drive {} is {}", part, mnt);
+			println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+
+			println!(" Directory of {}\n", path.clone().into_string().unwrap());
+
+			let entry_metadata = fs::metadata(path.to_str().unwrap()).unwrap();
+
+			let dt_local: DateTime<Local> = entry_metadata.modified().unwrap().into();
+			
+			println!(
+				"{} {}              {:>12}  {}",
+				dt_local.format("%d.%m.%Y"),
+				dt_local.format("%H:%M"),
+				entry_metadata.len(),
+				file_path.to_str().unwrap()
+			);
+
+			println!("      {:>10} {:<8} {:>15} bytes",
+				 "1", "File(s)",  entry_metadata.len());
+			// Calculating free space on the disk based on mountpoint
+			println!("      {:>10} {:<8} {:>15} bytes free",
+				 "0", "Dir(s)", &(utils::d_free_space(&CString::new(mnt).unwrap()).to_formatted_string(&Locale::fr)));
+		}
+	}
+
+	if let EntryType::Unknown = entry_type
+	{
+		let fp = Path::new(path.to_str().unwrap());
+		let parent_path = fp.parent().unwrap();
+		
+		match utils::dname_and_mp(&CString::new(parent_path.to_str().unwrap()).unwrap())
+		{
+			Ok((ref part_unstr, ref mnt_unstr)) =>
+			{
+				// Stripping the returned buffers
+				let part = utils::strip_buf_zeros(part_unstr);
+				let  mnt = utils::strip_buf_zeros(mnt_unstr);
+	
+				// Getting drive name
+				let mut dev = part.clone();
+				let _ = dev.split_off(part.len() - 2);
+		
+				println!(" Volume in drive {} is {}", part, mnt);
+				println!(" Volume Serial Number is {}\n", utils::d_serial_num(&dev));
+
+				println!(" Directory of {}\n", parent_path.to_str().unwrap());
+
+				println!("File Not Found");
+			},
+	
+			Err(code) =>
+			{
+				match code
+				{
+					2 => println!("The system cannot find the file specified."),
+					_ => eprintln!("statfs: {}", code)
+				}
+			}
+		}
+	}
+}
+
