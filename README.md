@@ -40,3 +40,5 @@ Otherwise, all of the arguments will remain accordingly to official version.
 - The utility automatically displays content in current working directory. Support of more command line arguments will be added sequentially.
 - Utility was tested on FreeBSD, in future will be tested and ported into OpenBSD and NetBSD.
 - Contributors are welcomed.
+
+### ⚠️ Attention. The project is abandoned for indefinite period. Maintainer's X11 backfired on FreeBSD, which led to system removal. RIP.
